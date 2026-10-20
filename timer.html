@@ -53,7 +53,7 @@ html, body { height: 100%; }
 body { display: flex; flex-direction: column; }
 main { flex: 1; display: flex; }
 .wrap { flex: 1; justify-content: center; align-items: center; text-align: center; gap: 1.2em; }
-.clock { font-family: var(--display); font-weight: 800; font-size: clamp(7em, 30vw, 22em); line-height: .85; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.clock { font-family: var(--display); font-weight: 800; font-size: min(30vw, 40vh); line-height: .85; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .clock.warn { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .clock.last { animation: pulse 1s ease-in-out infinite; } }
 @keyframes pulse { 50% { opacity: .55; } }
@@ -139,15 +139,17 @@ main { flex: 1; display: flex; }
   function renderSync() {
     var f = $("sync");
     if (!url) { f.className = "sync"; f.textContent = "Tempo visibile solo su questo schermo: lo script Google non è collegato."; return; }
+    if (syncMsg === "old") { f.className = "sync ko"; f.textContent = "Lo script Google è alla versione vecchia: fate Gestisci deployment → Nuova versione."; return; }
     if (!key) {
       f.className = "sync";
       f.innerHTML = '<label for="regia">Codice regia, per mostrare il tempo sui telefoni</label><input id="regia" type="password" autocomplete="off"><button class="btn" type="submit">Collega</button>';
       return;
     }
-    f.className = "sync" + (syncMsg === "ok" ? " ok" : syncMsg === "key" || syncMsg === "net" ? " ko" : "");
+    f.className = "sync" + (syncMsg === "ok" ? " ok" : syncMsg === "key" || syncMsg === "net" || syncMsg === "old" ? " ko" : "");
     f.innerHTML = syncMsg === "ok" ? "Tempo collegato ai telefoni" :
       syncMsg === "key" ? 'Codice regia sbagliato. <button class="btn" type="button" id="rekey">Reinserisci</button>' :
-      syncMsg === "net" ? "Telefoni non raggiunti: riprovo al prossimo comando." : "Codice regia salvato: premete Avvia";
+      syncMsg === "net" ? "Telefoni non raggiunti: riprovo al prossimo comando." :
+      syncMsg === "old" ? "Lo script Google è alla versione vecchia: fate Gestisci deployment → Nuova versione." : "Codice regia salvato: premete Avvia";
     var rk = $("rekey"); if (rk) rk.addEventListener("click", function () { key = ""; try { localStorage.removeItem("tg-regia"); } catch (e) {} renderSync(); });
   }
   $("sync").addEventListener("submit", function (e) {
@@ -166,7 +168,9 @@ main { flex: 1; display: flex; }
   }
   /* se la pagina viene ricaricata, riprende il tempo già avviato */
   if (url) fetch(url + (url.indexOf("?") >= 0 ? "&" : "?") + "t=1", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
-    if (!d || !d.ok || d.state === "idle" || running) return;
+    if (!d || !d.ok) return;
+    if (typeof d.state !== "string" || typeof d.remaining !== "number") { syncMsg = "old"; renderSync(); return; }
+    if (d.state === "idle" || running) return;
     total = Math.max(Number(d.total) || TOTAL, 1); left = Number(d.remaining) || 0;
     if (d.state === "running" && left > 0) run(); else paint();
   }).catch(function () {});
