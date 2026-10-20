@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tre macchine in fila · TELEGestionale</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: testata blu del TG; sotto, la barra con tempo e obiettivo; poi il reparto: asse delle ore a sinistra e una colonna per macchina (pre-espansore, blocchiera, taglio). Il tempo scende verso il basso, i blocchetti si spostano solo in verticale. */
+:root {
+  --bg: #eef2f8; --surface: #ffffff; --ink: #0d1a2e; --muted: #56627a; --line: #d2d9e6; --line-soft: #e5eaf2; --line-strong: #b9c3d4;
+  --brand: #0b2a5b; --brand-ink: #ffffff; --accent: #c8102e; --ok: #0f7446; --ok-bg: #dcf2e6; --bad: #c8102e; --bad-bg: #fde7ea;
+  --jA: #2f62c9; --jB: #8f6200; --jC: #0d7a6e; --jD: #7347ba; --jE: #b83a72; --j-ink: #ffffff;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --hp: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+    --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+    --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+  --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+  --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.4; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top { background: var(--brand); color: var(--brand-ink); display: flex; align-items: center; gap: .8em; padding-block: .55em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.logo { font-family: var(--display); font-weight: 800; font-size: 1.35em; text-transform: uppercase; letter-spacing: .02em; display: flex; align-items: center; gap: .45em; white-space: nowrap; }
+.logo i { width: .55em; height: .55em; border-radius: 50%; background: #c8102e; display: inline-block; box-shadow: 0 0 0 .18em rgba(255,255,255,.25); }
+.scene { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.top .back { margin-left: auto; background: transparent; border: 1px solid rgba(255,255,255,.35); color: var(--brand-ink); padding: .25em .7em; font-weight: 600; font-size: .85em; }
+
+main { padding-block: 1.2em 2.5em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1em; }
+
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.3em, 7.5vw, 4.2em); line-height: .95; margin: 0; text-transform: uppercase; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 1.15em; text-transform: uppercase; letter-spacing: .06em; margin: 0; }
+.kicker { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+.lead { font-size: 1.15em; max-width: 60ch; margin: 0; }
+.note { color: var(--muted); font-size: .9em; margin: 0; max-width: 68ch; }
+
+.btn { border: 1px solid var(--line-strong); background: var(--surface); padding: .55em 1.1em; font-weight: 600; }
+.btn:hover:not(:disabled) { border-color: var(--brand); }
+.btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* introduzione */
+.flow { display: flex; align-items: center; gap: .5em; flex-wrap: wrap; font-family: var(--display); font-weight: 700; font-size: 1.25em; text-transform: uppercase; letter-spacing: .04em; }
+.flow span.m { background: var(--surface); border: 1px solid var(--line-strong); padding: .25em .7em; }
+.flow span.a { color: var(--muted); }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: .55em; max-width: 64ch; counter-reset: r; }
+.rules li { counter-increment: r; display: grid; grid-template-columns: 1.6em minmax(0, 1fr); gap: .3em; }
+.rules li::before { content: counter(r); font-family: var(--display); font-weight: 800; color: var(--accent); font-size: 1.2em; line-height: 1.1; }
+.challenge { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-left: .35em solid var(--accent); padding: .8em 1em; }
+.challenge b { font-family: var(--display); font-weight: 800; font-size: 2.2em; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* tabella commesse */
+.jobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5em, 1fr)); gap: .5em; }
+.job { display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: .1em .6em; align-items: center; background: var(--surface); border: 1px solid var(--line); padding: .45em .6em; min-width: 0; }
+.job .sw { grid-row: 1 / span 2; width: 2.2em; height: 2.2em; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 1.1em; color: var(--j-ink); }
+.job .nm { font-size: .85em; line-height: 1.2; min-width: 0; }
+.job .tm { font-family: var(--mono); font-size: .75em; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* barra di gioco */
+.hud { display: flex; flex-wrap: wrap; gap: .6em; align-items: stretch; }
+.stat { background: var(--surface); border: 1px solid var(--line); padding: .35em .8em; display: flex; flex-direction: column; min-width: 7.5em; }
+.stat b { font-family: var(--display); font-weight: 800; font-size: 1.9em; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .78em; color: var(--muted); }
+.stat.good b { color: var(--ok); }
+.stat.bad b { color: var(--bad); }
+.hud .actions { margin-left: auto; display: flex; gap: .5em; flex-wrap: wrap; align-items: center; }
+.issues { margin: 0; padding: .6em .9em; list-style: none; background: var(--bad-bg); border: 1px solid var(--bad); display: grid; gap: .25em; font-size: .9em; }
+.issues li::before { content: "▲ "; color: var(--bad); font-size: .8em; }
+.okline { margin: 0; padding: .6em .9em; background: var(--ok-bg); border: 1px solid var(--ok); font-size: .9em; }
+.nudge { display: flex; align-items: center; gap: .5em; flex-wrap: wrap; font-size: .9em; min-height: 2.4em; }
+.nudge .btn { padding: .3em .8em; }
+.nudge b { font-family: var(--display); font-size: 1.15em; }
+
+/* reparto */
+.floor { display: grid; grid-template-columns: 2.6em repeat(3, minmax(0, 1fr)); gap: 0 .5em; }
+@media (min-width: 900px) { .floor { grid-template-columns: 2.6em repeat(3, minmax(0, 17em)); justify-content: start; } }
+.floor .head { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; text-align: center; padding-bottom: .35em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.floor .head small { display: block; font-family: var(--mono); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: .72em; }
+.axis { position: relative; font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.axis span { position: absolute; right: .35em; transform: translateY(-50%); white-space: nowrap; }
+.col { position: relative; background-color: var(--surface); border: 1px solid var(--line); background-image: repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px var(--hp)); touch-action: pan-y; }
+.target { position: absolute; left: -1px; right: -1px; height: 0; border-top: 2px dashed var(--accent); z-index: 1; pointer-events: none; }
+.target span { position: absolute; right: 3px; top: -1.6em; font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--surface); padding: 0 .3em; white-space: nowrap; }
+
+.blk { position: absolute; left: 4px; right: 4px; z-index: 2; border: 0; padding: 0 .45em; display: flex; align-items: center; justify-content: space-between; gap: .3em; color: var(--j-ink); font-family: var(--display); font-weight: 800; font-size: 1.05em; line-height: 1; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; overflow: hidden; box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
+.blk small { font-family: var(--mono); font-weight: 500; font-size: .68em; opacity: .9; white-space: nowrap; }
+.blk.tiny small { display: none; }
+.blk.tiny { font-size: .8em; padding: 0 .35em; }
+.axis span.tg { color: var(--accent); font-weight: 600; }
+.blk.A { background: var(--jA); } .blk.B { background: var(--jB); } .blk.C { background: var(--jC); } .blk.D { background: var(--jD); } .blk.E { background: var(--jE); }
+.blk.sel { outline: 3px solid var(--ink); outline-offset: 1px; z-index: 4; }
+.blk.dragging { cursor: grabbing; z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
+.blk.bad { outline: 3px solid var(--bad); outline-offset: 1px; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.28) 0 5px, transparent 5px 10px); }
+.blk.bad.sel { outline-color: var(--ink); }
+@media (prefers-reduced-motion: no-preference) { .blk:not(.dragging) { transition: top .12s ease; } }
+
+/* risultato */
+.result { background: var(--surface); border: 2px solid var(--brand); padding: 1em 1.2em; display: flex; flex-direction: column; gap: .4em; }
+.result b.big { font-family: var(--display); font-weight: 800; font-size: 1.7em; line-height: 1.05; }
+.result.win { border-color: var(--ok); }
+.result .acts { display: flex; gap: .5em; flex-wrap: wrap; margin-top: .3em; }
+.quiz { background: var(--brand); color: var(--brand-ink); padding: .55em .85em; }
+
+@media (max-width: 640px) {
+  .hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4em; }
+  .stat { min-width: 0; padding: .3em .45em; }
+  .stat b { font-size: 1.45em; }
+  .stat span { font-size: .7em; line-height: 1.15; }
+  .hud .actions { grid-column: 1 / -1; margin-left: 0; }
+  .hud .actions .btn { flex: 1 1 auto; }
+  .floor .head { font-size: .8em; letter-spacing: .02em; white-space: normal; overflow-wrap: anywhere; }
+}
+</style>
+<style>
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.field { display: flex; flex-direction: column; gap: .3em; max-width: 22em; }
+.field label { font-weight: 600; }
+.field input { font: inherit; color: inherit; padding: .6em .75em; border: 1px solid var(--line-strong); background: var(--surface); }
+.field .err { color: var(--bad); font-size: .85em; min-height: 1.2em; margin: 0; }
+.send { padding: .55em .85em; border: 1px solid var(--line); background: var(--bg); display: flex; gap: .6em; align-items: center; flex-wrap: wrap; }
+.send.ok { border-color: var(--ok); background: var(--ok-bg); }
+.send.ko { border-color: var(--bad); background: var(--bad-bg); }
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+
+
+<div class="top">
+  <div class="logo"><i></i>TELEGestionale</div>
+  <div class="scene" id="scene">Il gioco</div>
+  <button class="back" id="back" type="button" hidden>Regole</button>
+</div>
+<main><div class="wrap" id="app"></div></main>
+
+<script>
+(function () {
+  var MACH = ["Pre-espansore", "Blocchiera", "Taglio"];
+  var JOBS = {
+    A: { p: [3, 6, 2], name: "Lastre per il cappotto di un condominio" },
+    B: { p: [4, 1, 1], name: "Sagome per imballare elettrodomestici" },
+    C: { p: [5, 1, 6], name: "Lastre accoppiate per Guidonia" },
+    D: { p: [3, 4, 4], name: "Pannelli per una scuola" },
+    E: { p: [2, 1, 5], name: "Lastre per un cliente storico" }
+  };
+  var IDS = Object.keys(JOBS);
+  var TARGET = 22;      /* il miglior piano possibile finisce all'ora 22 */
+  var H = 50;           /* ore mostrate sull'asse, fisse */
+  var KEY = "flowshop-piano-v1";
+
+  /* piano di partenza: una commessa alla volta, dall'inizio alla fine (A, B, C, D, E) */
+  function naive() {
+    var t = 0, pos = {};
+    IDS.forEach(function (id) { pos[id] = []; JOBS[id].p.forEach(function (d, m) { pos[id][m] = t; t += d; }); });
+    return pos;
+  }
+  var NAIVE_END = IDS.reduce(function (s, id) { return s + JOBS[id].p[0] + JOBS[id].p[1] + JOBS[id].p[2]; }, 0);
+
+  var state = { screen: "intro", pos: naive(), sel: null, submitted: null, t0: 0, name: "", matr: "" };
+  try { state.name = localStorage.getItem("tg-nome") || ""; state.matr = localStorage.getItem("tg-matricola") || ""; state.t0 = Number(localStorage.getItem("tg-t0")) || 0; } catch (e) {}
+  function deviceId() {
+    var id = "";
+    try { id = localStorage.getItem("tg-device") || ""; } catch (e) {}
+    if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem("tg-device", id); } catch (e) {} }
+    return id;
+  }
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && saved.pos && IDS.every(function (id) { return Array.isArray(saved.pos[id]) && saved.pos[id].length === 3; })) state.pos = saved.pos;
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ pos: state.pos })); } catch (e) {} }
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- regole ---------- */
+  function check(pos) {
+    var issues = [], bad = {}, end = 0;
+    function mark(id, m) { bad[id + m] = true; }
+    IDS.forEach(function (id) {
+      var p = JOBS[id].p;
+      for (var m = 0; m < 3; m++) {
+        end = Math.max(end, pos[id][m] + p[m]);
+        if (m > 0) {
+          var out = pos[id][m - 1] + p[m - 1];
+          if (pos[id][m] < out) {
+            mark(id, m);
+            issues.push(id + " entra in " + MACH[m].toLowerCase() + " all'ora " + pos[id][m] + ", ma esce da " + MACH[m - 1].toLowerCase() + " solo all'ora " + out + ".");
+          }
+        }
+      }
+    });
+    for (var m = 0; m < 3; m++) {
+      for (var i = 0; i < IDS.length; i++) for (var k = i + 1; k < IDS.length; k++) {
+        var a = IDS[i], b = IDS[k];
+        var s1 = pos[a][m], e1 = s1 + JOBS[a].p[m], s2 = pos[b][m], e2 = s2 + JOBS[b].p[m];
+        if (s1 < e2 && s2 < e1) {
+          mark(a, m); mark(b, m);
+          issues.push(MACH[m] + ": " + a + " e " + b + " si sovrappongono tra l'ora " + Math.max(s1, s2) + " e l'ora " + Math.min(e1, e2) + ".");
+        }
+      }
+    }
+    return { issues: issues, bad: bad, end: end, ok: issues.length === 0 };
+  }
+
+  /* ---------- introduzione ---------- */
+  function renderIntro() {
+    state.screen = "intro";
+    $("scene").textContent = "Il gioco";
+    $("back").hidden = true;
+    $("app").innerHTML =
+      '<div class="kicker">Il gioco</div><h1>Tre macchine in fila</h1>' +
+      '<p class="lead">Nello stabilimento ogni commessa passa da tre macchine, sempre nello stesso ordine.</p>' +
+      '<div class="flow"><span class="m">Pre-espansore</span><span class="a">→</span><span class="m">Blocchiera</span><span class="a">→</span><span class="m">Taglio</span></div>' +
+      '<ol class="rules">' +
+      "<li><span>Ogni macchina lavora <b>un blocchetto alla volta</b>.</span></li>" +
+      "<li><span>Una commessa entra in una macchina <b>solo dopo essere uscita</b> dalla precedente.</span></li>" +
+      "<li><span>Trascinate i blocchetti <b>in su o in giù</b>, nella colonna della loro macchina. Il tempo scende verso il basso.</span></li>" +
+      "</ol>" +
+      '<p class="note">Il piano di partenza è il più semplice possibile: una commessa alla volta, dall’inizio alla fine. Tutto finisce all’ora ' + NAIVE_END + ".</p>" +
+      '<div class="challenge"><span>Vi sfidiamo a finire tutto entro l’ora</span><b>' + TARGET + "</b></div>" +
+      '<form class="field" id="nameForm" novalidate><label for="pname">Il tuo nome, per la classifica</label><input id="pname" name="pname" type="text" maxlength="24" autocomplete="given-name" placeholder="Per esempio Giulia R." value="' + esc(state.name) + '"><label for="pmatr">La tua matricola</label><input id="pmatr" name="pmatr" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="7 cifre" value="' + esc(state.matr) + '"><p class="err" id="nameErr" aria-live="polite"></p><button class="btn primary" type="submit" id="go">Inizia</button></form>' +
+      '<p class="note">La matricola serve solo a distinguere chi ha lo stesso nome: sul proiettore compaiono il nome e le ultime 3 cifre.</p>' +
+      '<h2>Le commesse</h2>' + jobsHtml();
+    $("nameForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var v = $("pname").value.replace(/\s+/g, " ").trim();
+      var mt = $("pmatr").value.replace(/\D/g, "");
+      if (!v) { $("nameErr").textContent = "Scrivi il tuo nome per entrare in classifica."; $("pname").focus(); return; }
+      if (!/^\d{5,9}$/.test(mt)) { $("nameErr").textContent = "Scrivi la tua matricola: solo cifre."; $("pmatr").focus(); return; }
+      state.name = v.slice(0, 24); state.matr = mt;
+      try { localStorage.setItem("tg-nome", state.name); localStorage.setItem("tg-matricola", state.matr); } catch (err) {}
+      startGame();
+    });
+  }
+  function jobsHtml() {
+    return '<div class="jobs">' + IDS.map(function (id) {
+      var p = JOBS[id].p;
+      return '<div class="job"><span class="sw" style="background:var(--j' + id + ')">' + id + '</span><span class="nm">' + esc(JOBS[id].name) + '</span><span class="tm">' + p[0] + " h · " + p[1] + " h · " + p[2] + " h</span></div>";
+    }).join("") + "</div>";
+  }
+
+  /* ---------- gioco ---------- */
+  var hp = 16, els = {}, drag = null;
+
+  function startGame() {
+    state.screen = "game"; state.submitted = null;
+    if (!state.t0) { state.t0 = Date.now(); try { localStorage.setItem("tg-t0", String(state.t0)); } catch (e) {} }
+    buildGame(); window.scrollTo(0, 0);
+  }
+  function calcHp() {
+    var wide = window.innerWidth >= 900;
+    var avail = window.innerHeight - (wide ? 230 : 260);
+    hp = Math.max(wide ? 17 : 15, Math.min(24, Math.floor(avail / H)));
+    document.documentElement.style.setProperty("--hp", hp + "px");
+  }
+  function buildGame() {
+    $("scene").textContent = "Il gioco · obiettivo ora " + TARGET;
+    $("back").hidden = false;
+    calcHp();
+    var heads = '<div></div>' + MACH.map(function (m, i) { return '<div class="head">' + m + "<small>macchina " + (i + 1) + "</small></div>"; }).join("");
+    var axis = "";
+    for (var t = 0; t <= H; t += 2) axis += '<span style="top:' + (t * hp) + 'px"' + (t === TARGET ? ' class="tg"' : "") + ">" + t + "</span>";
+    var cols = MACH.map(function (m, i) { return '<div class="col" id="col' + i + '" style="height:' + (H * hp) + 'px" aria-label="' + m + '"><div class="target" style="top:' + (TARGET * hp) + 'px">' + (i === MACH.length - 1 ? "<span>obiettivo</span>" : "") + "</div></div>"; }).join("");
+    $("app").innerHTML =
+      '<div class="hud">' +
+        '<div class="stat" id="sEnd"><b id="vEnd">–</b><span>fine lavori</span></div>' +
+        '<div class="stat"><b>' + TARGET + '</b><span>obiettivo</span></div>' +
+        '<div class="stat" id="sOk"><b id="vOk">0</b><span>regole violate</span></div>' +
+        '<div class="actions"><button class="btn" type="button" id="reset">Ricomincia</button><button class="btn primary" type="button" id="submit">Consegna il piano</button></div>' +
+      "</div>" +
+      '<div id="msg"></div>' +
+      '<div class="nudge" id="nudge" aria-live="polite"></div>' +
+      '<div class="floor">' + heads + '<div class="axis" style="height:' + (H * hp) + 'px">' + axis + "</div>" + cols + "</div>" +
+      '<h2>Le commesse</h2>' + jobsHtml();
+    els = { cols: [$("col0"), $("col1"), $("col2")], blk: {} };
+    IDS.forEach(function (id) {
+      for (var m = 0; m < 3; m++) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "blk " + id; b.setAttribute("data-id", id); b.setAttribute("data-m", m);
+        b.innerHTML = "<span>" + id + "</span><small>" + JOBS[id].p[m] + " h</small>";
+        b.addEventListener("pointerdown", onDown);
+        b.addEventListener("keydown", onKey);
+        b.addEventListener("click", function (e) { if (e.detail === 0) select(this.getAttribute("data-id"), +this.getAttribute("data-m")); });
+        els.cols[m].appendChild(b);
+        els.blk[id + m] = b;
+      }
+    });
+    $("reset").addEventListener("click", resetPlan);
+    $("submit").addEventListener("click", submitPlan);
+    layout();
+  }
+  function layout() {
+    var c = check(state.pos);
+    IDS.forEach(function (id) {
+      for (var m = 0; m < 3; m++) {
+        var b = els.blk[id + m], d = JOBS[id].p[m];
+        b.style.top = (state.pos[id][m] * hp + 1) + "px";
+        b.style.height = (d * hp - 2) + "px";
+        b.classList.toggle("tiny", d * hp < 30);
+        b.classList.toggle("bad", !!c.bad[id + m]);
+        b.classList.toggle("sel", !!(state.sel && state.sel.id === id && state.sel.m === m));
+        b.setAttribute("aria-label", "Commessa " + id + " su " + MACH[m] + ", dall'ora " + state.pos[id][m] + " all'ora " + (state.pos[id][m] + d));
+      }
+    });
+    $("vEnd").textContent = c.ok ? c.end : "–";
+    $("sEnd").className = "stat" + (c.ok ? (c.end <= TARGET ? " good" : "") : "");
+    $("vOk").textContent = c.issues.length;
+    $("sOk").className = "stat" + (c.issues.length ? " bad" : " good");
+    $("submit").disabled = !c.ok;
+    var msg = $("msg");
+    if (state.submitted) msg.innerHTML = resultHtml(state.submitted);
+    else if (!c.ok) msg.innerHTML = '<ul class="issues">' + c.issues.slice(0, 4).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + (c.issues.length > 4 ? "<li>e altre " + (c.issues.length - 4) + ".</li>" : "") + "</ul>";
+    else msg.innerHTML = '<p class="okline">Il piano rispetta tutte le regole: finisce all’ora ' + c.end + ". " + (c.end <= TARGET ? "Siete dentro l’obiettivo: consegnatelo." : "Per l’obiettivo mancano " + (c.end - TARGET) + (c.end - TARGET === 1 ? " ora." : " ore.")) + "</p>";
+    if (state.submitted) wireResult();
+    var n = $("nudge");
+    if (state.sel) {
+      var s = state.sel;
+      n.innerHTML = "Selezionato <b>" + s.id + " · " + MACH[s.m] + "</b>, dall’ora " + state.pos[s.id][s.m] + ' <button class="btn" type="button" id="up" aria-label="Un’ora prima">▲ un’ora prima</button><button class="btn" type="button" id="down" aria-label="Un’ora dopo">▼ un’ora dopo</button>';
+      $("up").addEventListener("click", function () { move(s.id, s.m, -1); });
+      $("down").addEventListener("click", function () { move(s.id, s.m, 1); });
+    } else n.innerHTML = '<span class="note">Trascinate un blocchetto, oppure toccatelo e usate le frecce.</span>';
+    return c;
+  }
+  function clampStart(id, m, v) { return Math.max(0, Math.min(H - JOBS[id].p[m], v)); }
+  function move(id, m, delta) {
+    state.pos[id][m] = clampStart(id, m, state.pos[id][m] + delta);
+    changed(); layout();
+  }
+  function select(id, m) {
+    state.sel = state.sel && state.sel.id === id && state.sel.m === m ? null : { id: id, m: m };
+    layout();
+  }
+  function changed() { state.submitted = null; save(); }
+
+  /* ---------- trascinamento ---------- */
+  function onDown(e) {
+    if (e.button !== undefined && e.button > 0) return;
+    var b = e.currentTarget, id = b.getAttribute("data-id"), m = +b.getAttribute("data-m");
+    e.preventDefault();
+    try { b.setPointerCapture(e.pointerId); } catch (err) {}
+    drag = { id: id, m: m, b: b, y0: e.clientY, s0: state.pos[id][m], sc0: window.scrollY, moved: false, pid: e.pointerId, y: e.clientY, raf: 0 };
+    b.addEventListener("pointermove", onMove);
+    b.addEventListener("pointerup", onUp);
+    b.addEventListener("pointercancel", onUp);
+  }
+  function applyDrag() {
+    var dy = (drag.y - drag.y0) + (window.scrollY - drag.sc0);
+    var v = clampStart(drag.id, drag.m, drag.s0 + Math.round(dy / hp));
+    if (v !== state.pos[drag.id][drag.m]) { state.pos[drag.id][drag.m] = v; state.submitted = null; layout(); }
+  }
+  function onMove(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag.y = e.clientY;
+    if (!drag.moved && Math.abs(drag.y - drag.y0) < 5) return;
+    if (!drag.moved) { drag.moved = true; drag.b.classList.add("dragging"); drag.raf = requestAnimationFrame(autoScroll); }
+    applyDrag();
+  }
+  function autoScroll() {
+    if (!drag || !drag.moved) return;
+    var edge = 60, v = 0;
+    if (drag.y < edge) v = -Math.ceil((edge - drag.y) / 4);
+    else if (drag.y > window.innerHeight - edge) v = Math.ceil((drag.y - (window.innerHeight - edge)) / 4);
+    if (v) { window.scrollBy(0, v); applyDrag(); }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+  function onUp(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    var d = drag; drag = null;
+    cancelAnimationFrame(d.raf);
+    d.b.classList.remove("dragging");
+    d.b.removeEventListener("pointermove", onMove);
+    d.b.removeEventListener("pointerup", onUp);
+    d.b.removeEventListener("pointercancel", onUp);
+    if (d.moved) { state.sel = { id: d.id, m: d.m }; save(); layout(); }
+    else select(d.id, d.m);
+  }
+  function onKey(e) {
+    var id = this.getAttribute("data-id"), m = +this.getAttribute("data-m");
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault(); state.sel = { id: id, m: m }; move(id, m, e.key === "ArrowUp" ? -1 : 1); els.blk[id + m].focus();
+    }
+  }
+
+  /* ---------- azioni ---------- */
+  var resetArmed = 0;
+  function resetPlan() {
+    var b = $("reset");
+    if (!resetArmed) { b.textContent = "Confermi?"; resetArmed = setTimeout(function () { resetArmed = 0; if ($("reset")) $("reset").textContent = "Ricomincia"; }, 3000); return; }
+    clearTimeout(resetArmed); resetArmed = 0; b.textContent = "Ricomincia";
+    state.pos = naive(); state.sel = null; changed(); layout();
+  }
+  function submitPlan() {
+    var c = check(state.pos); if (!c.ok) return;
+    state.submitted = { end: c.end, win: c.end <= TARGET, send: "sending" };
+    state.sel = null; layout();
+    sendResult(state.submitted);
+    $("msg").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function resultHtml(r) {
+    var gain = NAIVE_END - r.end;
+    return '<div class="result' + (r.win ? " win" : "") + '" role="status">' +
+      '<b class="big">' + (r.win ? "Ce l’avete fatta: tutto finito all’ora " + r.end + "." : "Tutto finito all’ora " + r.end + ". L’obiettivo era l’ora " + TARGET + ".") + "</b>" +
+      "<span>Rispetto al piano di partenza avete guadagnato " + gain + (gain === 1 ? " ora" : " ore") + "." + (r.win ? "" : " Ci riescono in pochi: potete ancora spostare i blocchetti.") + "</span>" +
+      sendHtml(r) +
+      '<div class="acts"><button class="btn" type="button" id="again">Continua a provare</button></div></div>';
+  }
+  function wireResult() {
+    var a = $("again"); if (a) a.addEventListener("click", function () { state.submitted = null; layout(); });
+    var t = $("retry"); if (t) t.addEventListener("click", function () { sendResult(state.submitted); });
+  }
+  function sendHtml(r) {
+    if (r.send === "ok") return '<div class="send ok">Risultato inviato: sei in classifica come <b>' + esc(state.name) + "</b> (matricola che finisce con " + esc(state.matr.slice(-3)) + ").</div>";
+    if (r.send === "ko") return '<div class="send ko">Il risultato non è partito. Controlla la connessione e riprova. <button class="btn" type="button" id="retry">Invia di nuovo</button></div>';
+    if (r.send === "off") return '<div class="send">La classifica non è ancora collegata.</div>';
+    return '<div class="send">Invio del risultato in corso…</div>';
+  }
+  function sendResult(r) {
+    var url = (window.TG_CONFIG && window.TG_CONFIG.API_URL) || "";
+    if (!r) return;
+    if (!url) { r.send = "off"; layout(); return; }
+    r.send = "sending"; if (state.submitted === r) layout();
+    var body = JSON.stringify({ name: state.name, matricola: state.matr, device: deviceId(), seconds: Math.round((Date.now() - state.t0) / 1000), pos: state.pos });
+    fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: body })
+      .then(function (res) { return res.json(); })
+      .then(function (j) { r.send = j && j.ok ? "ok" : "ko"; if (state.submitted === r) layout(); })
+      .catch(function () { r.send = "ko"; if (state.submitted === r) layout(); });
+  }
+
+  $("back").addEventListener("click", renderIntro);
+  var rt = 0;
+  window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (state.screen === "game" && !drag) buildGame(); }, 150); });
+
+  function start(data) {
+    if (data && data.pos) state.pos = data.pos;
+    if (data && data.screen === "game") startGame(); else renderIntro();
+  }
+  start({});
+})();
+</script>
+
+</body>
+</html>

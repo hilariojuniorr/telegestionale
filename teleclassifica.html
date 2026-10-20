@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classifica · TELEGestionale</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: testata blu del TG; sotto, la barra con tempo e obiettivo; poi il reparto: asse delle ore a sinistra e una colonna per macchina (pre-espansore, blocchiera, taglio). Il tempo scende verso il basso, i blocchetti si spostano solo in verticale. */
+:root {
+  --bg: #eef2f8; --surface: #ffffff; --ink: #0d1a2e; --muted: #56627a; --line: #d2d9e6; --line-soft: #e5eaf2; --line-strong: #b9c3d4;
+  --brand: #0b2a5b; --brand-ink: #ffffff; --accent: #c8102e; --ok: #0f7446; --ok-bg: #dcf2e6; --bad: #c8102e; --bad-bg: #fde7ea;
+  --jA: #2f62c9; --jB: #8f6200; --jC: #0d7a6e; --jD: #7347ba; --jE: #b83a72; --j-ink: #ffffff;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --hp: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+    --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+    --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+  --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+  --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.4; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.top { background: var(--brand); color: var(--brand-ink); display: flex; align-items: center; gap: .8em; padding-block: .55em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.logo { font-family: var(--display); font-weight: 800; font-size: 1.35em; text-transform: uppercase; letter-spacing: .02em; display: flex; align-items: center; gap: .45em; white-space: nowrap; text-decoration: none; }
+.logo i { width: .55em; height: .55em; border-radius: 50%; background: #c8102e; display: inline-block; box-shadow: 0 0 0 .18em rgba(255,255,255,.25); }
+.scene { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+main { padding-block: 1.4em 2.5em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1em; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.4em, 8vw, 4.6em); line-height: .95; margin: 0; text-transform: uppercase; text-wrap: balance; }
+.kicker { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+.note { color: var(--muted); font-size: .9em; margin: 0; }
+
+.head { display: flex; align-items: end; justify-content: space-between; gap: 1em; flex-wrap: wrap; }
+.count { font-family: var(--display); font-weight: 700; font-size: 1.3em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.count b { color: var(--ink); font-size: 1.6em; font-variant-numeric: tabular-nums; }
+.board { display: flex; flex-direction: column; gap: .45em; margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) auto auto; gap: 1em; align-items: center; background: var(--surface); border: 1px solid var(--line); padding: .5em 1em; }
+.row .pos { font-family: var(--display); font-weight: 800; font-size: 2em; line-height: 1; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row .nm small { font-family: var(--mono); font-weight: 500; font-size: .5em; color: var(--muted); }
+.row .nm { font-family: var(--display); font-weight: 700; font-size: 1.6em; line-height: 1.1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .end { font-family: var(--display); font-weight: 800; font-size: 1.6em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .end small { font-size: .55em; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: .3em; }
+.row .tm { font-family: var(--mono); font-size: 1em; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 4.5em; text-align: right; }
+.row.first { border: 2px solid var(--accent); }
+.row.first .pos { color: var(--accent); }
+.row.hit .end { color: var(--ok); }
+.state { background: var(--surface); border: 1px dashed var(--line-strong); padding: 1.4em; text-align: center; color: var(--muted); font-size: 1.1em; }
+.legend { display: flex; gap: 1.2em; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: .6em; }
+  .row .tm { grid-column: 2 / -1; text-align: left; min-width: 0; font-size: .85em; }
+  .row .nm, .row .end { font-size: 1.25em; }
+  .row .pos { font-size: 1.5em; }
+}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<header class="top"><a class="logo" href="index.html"><i></i>TELEGestionale</a><span class="scene">Classifica</span></header>
+<main><div class="wrap">
+  <div class="head">
+    <div><div class="kicker">Tre macchine in fila · obiettivo ora 22</div><h1>Classifica</h1></div>
+    <div class="count"><b id="total">0</b> piani consegnati</div>
+  </div>
+  <ol class="board" id="board" aria-live="polite"></ol>
+  <div class="state" id="state">Collegamento alla classifica…</div>
+  <div class="legend note"><span>Prima conta l’ora di fine più bassa, a parità chi ha consegnato prima.</span><span id="updated"></span></div>
+</div></main>
+<script>
+(function () {
+  var TARGET = 22, SHOW = 10;
+  var url = (window.TG_CONFIG && window.TG_CONFIG.API_URL) || "";
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function render(d) {
+    var top = (d.top || []).slice(0, SHOW);
+    $("total").textContent = d.total || 0;
+    $("board").innerHTML = top.map(function (r, i) {
+      var name = String(r.name || "").replace(/^'/, "");
+      return '<li class="row' + (i === 0 ? " first" : "") + (r.end <= TARGET ? " hit" : "") + '"><span class="pos">' + (i + 1) + '</span><span class="nm">' + esc(name) + (r.tag ? ' <small>…' + esc(r.tag) + "</small>" : "") + '</span><span class="end"><small>ora</small>' + r.end + '</span><span class="tm">' + mmss(r.secs) + "</span></li>";
+    }).join("");
+    $("state").hidden = top.length > 0;
+    $("state").textContent = "Ancora nessun piano consegnato.";
+    var t = new Date();
+    $("updated").textContent = "Aggiornata alle " + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + ":" + String(t.getSeconds()).padStart(2, "0");
+  }
+  function load() {
+    if (!url) { $("state").textContent = "La classifica non è ancora collegata al Foglio Google."; return; }
+    fetch(url, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok) render(d); })
+      .catch(function () { $("state").hidden = false; $("state").textContent = "Classifica non raggiungibile: controllo di nuovo tra pochi secondi."; });
+  }
+  load(); setInterval(load, 5000);
+})();
+</script>
+</body>
+</html>

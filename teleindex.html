@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TELEGestionale</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: testata blu del TG; sotto, la barra con tempo e obiettivo; poi il reparto: asse delle ore a sinistra e una colonna per macchina (pre-espansore, blocchiera, taglio). Il tempo scende verso il basso, i blocchetti si spostano solo in verticale. */
+:root {
+  --bg: #eef2f8; --surface: #ffffff; --ink: #0d1a2e; --muted: #56627a; --line: #d2d9e6; --line-soft: #e5eaf2; --line-strong: #b9c3d4;
+  --brand: #0b2a5b; --brand-ink: #ffffff; --accent: #c8102e; --ok: #0f7446; --ok-bg: #dcf2e6; --bad: #c8102e; --bad-bg: #fde7ea;
+  --jA: #2f62c9; --jB: #8f6200; --jC: #0d7a6e; --jD: #7347ba; --jE: #b83a72; --j-ink: #ffffff;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --hp: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+    --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+    --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #07101e; --surface: #0f1c31; --ink: #eef2f9; --muted: #9babc4; --line: #24344e; --line-soft: #172640; --line-strong: #34486a;
+  --brand: #143c78; --brand-ink: #ffffff; --accent: #ff5364; --ok: #4bd497; --ok-bg: #0f3828; --bad: #ff6b78; --bad-bg: #44161c;
+  --jA: #86a8ff; --jB: #f2bd55; --jC: #55d3c1; --jD: #bb9bff; --jE: #ff8fbf; --j-ink: #08111f;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.4; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.top { background: var(--brand); color: var(--brand-ink); display: flex; align-items: center; gap: .8em; padding-block: .55em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.logo { font-family: var(--display); font-weight: 800; font-size: 1.35em; text-transform: uppercase; letter-spacing: .02em; display: flex; align-items: center; gap: .45em; white-space: nowrap; text-decoration: none; }
+.logo i { width: .55em; height: .55em; border-radius: 50%; background: #c8102e; display: inline-block; box-shadow: 0 0 0 .18em rgba(255,255,255,.25); }
+.scene { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+main { padding-block: 1.4em 2.5em; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.1em; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.4em, 8vw, 4.6em); line-height: .95; margin: 0; text-transform: uppercase; text-wrap: balance; }
+.kicker { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+.note { color: var(--muted); font-size: .9em; margin: 0; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr)); gap: 1em; }
+.card { display: flex; flex-direction: column; gap: .5em; background: var(--surface); border: 1px solid var(--line); border-top: .35em solid var(--brand); padding: 1.1em 1.2em 1.3em; text-decoration: none; min-width: 0; }
+.card:hover { border-color: var(--brand); }
+.card .for { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .85em; color: var(--muted); }
+.card b { font-family: var(--display); font-weight: 800; font-size: 2em; line-height: 1; text-transform: uppercase; }
+.card span.d { color: var(--muted); }
+.card.main { border-top-color: var(--accent); }
+.card.soon { opacity: .6; pointer-events: none; }
+</style>
+</head>
+<body>
+<header class="top"><a class="logo" href="index.html"><i></i>TELEGestionale</a><span class="scene">Scheduling</span></header>
+<main><div class="wrap">
+  <div class="kicker">Gestione degli Impianti Industriali · Classe rovesciata</div>
+  <h1>TELEGestionale</h1>
+  <p class="note">Tutto il materiale della nostra introduzione allo scheduling, in un posto solo.</p>
+  <div class="cards">
+    <a class="card main" href="gioco.html"><span class="for">Per tutti, dal telefono</span><b>Il gioco</b><span class="d">Tre macchine in fila: riorganizzate i blocchetti e provate a finire entro l’ora 22.</span></a>
+    <a class="card" href="classifica.html"><span class="for">Sul proiettore</span><b>Classifica</b><span class="d">Chi ha consegnato il piano migliore, aggiornata in diretta.</span></a>
+    <a class="card soon" href="#" aria-disabled="true"><span class="for">Sul proiettore</span><b>Presentazione</b><span class="d">Il tabellone del TG. In arrivo.</span></a>
+  </div>
+</div></main>
+</body>
+</html>
