@@ -458,16 +458,30 @@ html, body { margin: 0; }
     if (r.send === "off") return '<div class="send">La classifica non è ancora collegata.</div>';
     return '<div class="send">Invio del risultato in corso…</div>';
   }
+  /* Invio con nuovi tentativi automatici: se in aula consegnano tutti insieme
+     e il server risponde "occupato", il telefono riprova da solo dopo qualche secondo. */
   function sendResult(r) {
     var url = (window.TG_CONFIG && window.TG_CONFIG.API_URL) || "";
     if (!r) return;
     if (!url) { r.send = "off"; layout(); return; }
     r.send = "sending"; if (state.submitted === r) layout();
     var body = JSON.stringify({ name: state.name, matricola: state.matr, device: deviceId(), seconds: Math.round((Date.now() - state.t0) / 1000), pos: state.pos });
-    fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: body })
-      .then(function (res) { return res.json(); })
-      .then(function (j) { r.send = j && j.ok ? "ok" : "ko"; if (state.submitted === r) layout(); })
-      .catch(function () { r.send = "ko"; if (state.submitted === r) layout(); });
+    var waits = [2000, 4000, 7000, 12000, 20000, 30000], attempt = 0;
+    function fail() {
+      if (attempt < waits.length) { var w = waits[attempt++] * (0.7 + Math.random() * 0.6); setTimeout(go, w); return; }
+      r.send = "ko"; if (state.submitted === r) layout();
+    }
+    function go() {
+      fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: body })
+        .then(function (res) { return res.json(); })
+        .then(function (j) {
+          if (j && j.ok) { r.send = "ok"; if (state.submitted === r) layout(); return; }
+          if (j && (j.error === "invalid" || j.error === "missing")) { r.send = "ko"; if (state.submitted === r) layout(); return; }
+          fail();
+        })
+        .catch(fail);
+    }
+    setTimeout(go, Math.random() * 1500);   /* piccolo ritardo casuale: chi consegna nello stesso secondo non arriva tutto insieme */
   }
 
   $("back").addEventListener("click", renderIntro);
@@ -499,8 +513,18 @@ html, body { margin: 0; }
       T.state = d.state; T.left = Number(d.remaining) || 0; T.endAt = Date.now() + T.left * 1000; tPaint();
     }).catch(function () {});
   }
-  tFetch(); setInterval(tFetch, 15000); setInterval(tPaint, 500);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) tFetch(); });
+  /* Il telefono conta il tempo da solo e chiede lo stato al server ogni 20 secondi circa
+     mentre il tempo corre o e' in pausa, ogni 45 quando e' fermo, e mai con lo schermo spento:
+     anche con 150 telefoni le richieste restano poche e sparse. */
+  var tTimer = 0;
+  function tLoop() {
+    clearTimeout(tTimer);
+    if (!document.hidden) tFetch();
+    var base = T.state === "running" || T.state === "paused" ? 20000 : 45000;
+    tTimer = setTimeout(tLoop, base * (0.75 + Math.random() * 0.5));
+  }
+  setTimeout(tLoop, Math.random() * 3000); setInterval(tPaint, 500);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) tLoop(); });
 
   start({});
 })();
